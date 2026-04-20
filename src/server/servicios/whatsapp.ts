@@ -1,7 +1,7 @@
 import { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
-import { prisma } from '../../utilidades/prisma';
-import { winstonLogger } from '../../utilidades/logger';
+import { prisma } from '../utilidades/prisma';
+import { winstonLogger } from '../utilidades/logger';
 import path from 'path';
 import fs from 'fs';
 
@@ -31,7 +31,7 @@ export class WhatsAppWorker {
 
     this.instancias.set(sesionKey, sock);
 
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', async (update: any) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
@@ -67,7 +67,7 @@ export class WhatsAppWorker {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    sock.ev.on('messages.upsert', async ({ messages, type }: any) => {
       if (type === 'notify') {
         for (const msg of messages) {
           if (!msg.key.fromMe && msg.message) {
