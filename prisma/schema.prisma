@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TipoNegocio {
+  restaurante
+  tecnologia
+  cda
+  barberia
+  soporte_tecnico
+  tienda
+  colegio
+  otro
+}
+
+enum EstadoOrden {
+  pendiente
+  en_proceso
+  completada
+  cancelada
+}
+
+enum EstadoCita {
+  programada
+  confirmada
+  en_espera
+  finalizada
+  cancelada
+}
+
+enum TipoMensaje {
+  texto
+  imagen
+  video
+  audio
+  documento
+  ubicacion
+  contacto
+  interactivo
+}
+
+enum CanalComunicacion {
+  whatsapp
+  messenger
+  instagram
+  web
+}
+
+model Empresa {
+  id             String          @id @default(uuid()) @db.Uuid
+  nombre         String          @db.VarChar(255)
+  slug           String          @unique @db.VarChar(255)
+  tipo           TipoNegocio     @default(otro)
+  logo_url       String?
+  configuracion  Json?           @default("{}")
+  creado_en      DateTime?       @default(now()) @db.Timestamptz(6)
+  actualizado_en DateTime?       @default(now()) @db.Timestamptz(6)
+  
+  usuarios       Usuario[]
+  contactos      Contacto[]
+  sesiones_wa    SesionWhatsapp[]
+  conversaciones Conversacion[]
+  mensajes       Mensaje[]
+  vehiculos      Vehiculo[]
+  citas_cda      CitaCDA[]
+  barberos       Barbero[]
+  servicios      Servicio[]
+  citas_barberia CitaBarberia[]
+  claves_api     ClaveAPI[]
+
+  @@map("empresas")
+}
+
+model Usuario {
+  id             String    @id @default(uuid()) @db.Uuid
+  empresa_id     String    @db.Uuid
+  nombre         String    @db.VarChar(255)
+  email          String    @db.VarChar(255)
+  contrasena     String
+  rol_id         Int
+  activo         Boolean?  @default(true)
+  ultimo_acceso  DateTime? @db.Timestamptz(6)
+  creado_en      DateTime? @default(now()) @db.Timestamptz(6)
+  actualizado_en DateTime? @default(now()) @db.Timestamptz(6)
+  
+  empresa        Empresa   @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  barberos       Barbero[]
+
+  @@unique([empresa_id, email])
+  @@map("usuarios")
+}
+
+model Contacto {
+  id             String         @id @default(uuid()) @db.Uuid
+  empresa_id     String         @db.Uuid
+  nombre         String         @db.VarChar(255)
+  telefono       String?        @db.VarChar(50)
+  email          String?        @db.VarChar(255)
+  etiquetas      String[]
+  notas          String?
+  creado_en      DateTime?      @default(now()) @db.Timestamptz(6)
+  actualizado_en DateTime?      @default(now()) @db.Timestamptz(6)
+  
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  conversaciones Conversacion[]
+  vehiculos      Vehiculo[]
+  citas_barberia CitaBarberia[]
+
+  @@unique([empresa_id, telefono])
+  @@map("contactos")
+}
+
+model SesionWhatsapp {
+  id             String    @id @default(uuid()) @db.Uuid
+  empresa_id     String    @db.Uuid
+  nombre_sesion  String?   @default("principal") @db.VarChar(255)
+  estado         String?   @default("desconectado") @db.VarChar(50)
+  datos_sesion   Json?
+  qr_code        String?
+  creado_en      DateTime? @default(now()) @db.Timestamptz(6)
+  actualizado_en DateTime? @default(now()) @db.Timestamptz(6)
+  
+  empresa        Empresa   @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+
+  @@unique([empresa_id, nombre_sesion])
+  @@map("sesiones_whatsapp")
+}
+
+model Conversacion {
+  id                  String            @id @default(uuid()) @db.Uuid
+  empresa_id          String            @db.Uuid
+  contacto_id         String            @db.Uuid
+  ultima_interaccion  DateTime?         @default(now()) @db.Timestamptz(6)
+  canal               CanalComunicacion? @default(whatsapp)
+  sin_leer            Int?              @default(0)
+  creado_en           DateTime?         @default(now()) @db.Timestamptz(6)
+  
+  empresa             Empresa           @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  contacto            Contacto          @relation(fields: [contacto_id], references: [id], onDelete: Cascade)
+  mensajes            Mensaje[]
+
+  @@unique([empresa_id, contacto_id, canal])
+  @@map("conversaciones")
+}
+
+model Mensaje {
+  id              String       @id @default(uuid()) @db.Uuid
+  empresa_id      String       @db.Uuid
+  conversacion_id String       @db.Uuid
+  remitente_id    String?      @db.Uuid
+  es_entrante     Boolean
+  contenido       String?
+  tipo            TipoMensaje? @default(texto)
+  metadata        Json?        @default("{}")
+  estado          String?      @default("enviado") @db.VarChar(50)
+  creado_en       DateTime?    @default(now()) @db.Timestamptz(6)
+  
+  empresa         Empresa      @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  conversacion    Conversacion @relation(fields: [conversacion_id], references: [id], onDelete: Cascade)
+
+  @@index([conversacion_id])
+  @@map("mensajes")
+}
+
+model TipoVehiculo {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @db.VarChar(100)
+  vehiculos Vehiculo[]
+
+  @@map("tipos_vehiculo")
+}
+
+model Vehiculo {
+  id                        String       @id @default(uuid()) @db.Uuid
+  empresa_id                String       @db.Uuid
+  contacto_id               String       @db.Uuid
+  placa                     String       @db.VarChar(10)
+  tipo_vehiculo_id          Int?
+  marca                     String?      @db.VarChar(100)
+  modelo                    String?      @db.VarChar(100)
+  vencimiento_soat          DateTime?    @db.Date
+  vencimiento_tecnomecanica DateTime?    @db.Date
+  creado_en                 DateTime?    @default(now()) @db.Timestamptz(6)
+  
+  empresa                   Empresa      @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  contacto                  Contacto     @relation(fields: [contacto_id], references: [id], onDelete: Cascade)
+  tipo                      TipoVehiculo? @relation(fields: [tipo_vehiculo_id], references: [id])
+  citas                     CitaCDA[]
+
+  @@unique([empresa_id, placa])
+  @@map("vehiculos")
+}
+
+model CitaCDA {
+  id             String      @id @default(uuid()) @db.Uuid
+  empresa_id     String      @db.Uuid
+  vehiculo_id    String      @db.Uuid
+  fecha_hora     DateTime    @db.Timestamptz(6)
+  estado         EstadoCita? @default(programada)
+  notas          String?
+  creado_en      DateTime?   @default(now()) @db.Timestamptz(6)
+  
+  empresa        Empresa     @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  vehiculo       Vehiculo    @relation(fields: [vehiculo_id], references: [id], onDelete: Cascade)
+
+  @@index([fecha_hora])
+  @@map("citas_cda")
+}
+
+model Barbero {
+  id             String         @id @default(uuid()) @db.Uuid
+  empresa_id     String         @db.Uuid
+  usuario_id     String?        @db.Uuid
+  nombre         String         @db.VarChar(255)
+  especialidad   String?
+  activo         Boolean?       @default(true)
+  
+  empresa        Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  usuario        Usuario?       @relation(fields: [usuario_id], references: [id])
+  citas          CitaBarberia[]
+
+  @@map("barberos")
+}
+
+model Servicio {
+  id               String         @id @default(uuid()) @db.Uuid
+  empresa_id       String         @db.Uuid
+  nombre           String         @db.VarChar(255)
+  descripcion      String?
+  precio           Decimal        @db.Decimal(15, 2)
+  duracion_minutos Int?           @default(30)
+  activo           Boolean?       @default(true)
+  
+  empresa          Empresa        @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  citas            CitaBarberia[]
+
+  @@map("servicios")
+}
+
+model CitaBarberia {
+  id             String      @id @default(uuid()) @db.Uuid
+  empresa_id     String      @db.Uuid
+  contacto_id    String      @db.Uuid
+  barbero_id     String      @db.Uuid
+  servicio_id    String      @db.Uuid
+  fecha_hora     DateTime    @db.Timestamptz(6)
+  estado         EstadoCita? @default(programada)
+  notas          String?
+  creado_en      DateTime?   @default(now()) @db.Timestamptz(6)
+  
+  empresa        Empresa     @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  contacto       Contacto    @relation(fields: [contacto_id], references: [id], onDelete: Cascade)
+  barbero        Barbero     @relation(fields: [barbero_id], references: [id], onDelete: Cascade)
+  servicio       Servicio    @relation(fields: [servicio_id], references: [id], onDelete: Cascade)
+
+  @@index([fecha_hora])
+  @@map("citas_barberia")
+}
+
+model ClaveAPI {
+  id             String    @id @default(uuid()) @db.Uuid
+  empresa_id     String    @db.Uuid
+  nombre         String    @db.VarChar(255)
+  clave_hash     String
+  prefijo        String    @db.VarChar(10)
+  ambitos        String[]  @default(["read", "write"])
+  ultimo_uso     DateTime? @db.Timestamptz(6)
+  creado_en      DateTime? @default(now()) @db.Timestamptz(6)
+  expira_en      DateTime? @db.Timestamptz(6)
+  
+  empresa        Empresa   @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+
+  @@map("claves_api")
+}
+
+model Moneda {
+  codigo         String        @id @db.VarChar(3)
+  nombre         String        @db.VarChar(100)
+  simbolo        String        @db.VarChar(10)
+  tasas_origen   TasaCambio[]  @relation("Origen")
+  tasas_destino  TasaCambio[]  @relation("Destino")
+
+  @@map("monedas")
+}
+
+model TasaCambio {
+  id             Int       @id @default(autoincrement())
+  moneda_origen  String    @db.VarChar(3)
+  moneda_destino String    @db.VarChar(3)
+  tasa           Decimal   @db.Decimal(20, 10)
+  actualizado_en DateTime? @default(now()) @db.Timestamptz(6)
+  
+  origen         Moneda    @relation("Origen", fields: [moneda_origen], references: [codigo])
+  destino        Moneda    @relation("Destino", fields: [moneda_destino], references: [codigo])
+
+  @@map("tasas_cambio")
+}
