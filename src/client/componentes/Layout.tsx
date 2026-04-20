@@ -1,5 +1,5 @@
 import { Outlet, Link, useParams, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users, Settings, LogOut, Car, Scissors } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -15,6 +15,8 @@ export default function Layout() {
     { nombre: 'Panel', ruta: `/${slug}/panel`, icono: LayoutDashboard },
     { nombre: 'Chat', ruta: `/${slug}/chat`, icono: MessageSquare },
     { nombre: 'Contactos', ruta: `/${slug}/contactos`, icono: Users },
+    { nombre: 'Módulo CDA', ruta: `/${slug}/cda`, icono: Car },
+    { nombre: 'Barbería', ruta: `/${slug}/barberia`, icono: Scissors },
     { nombre: 'Configuración', ruta: `/${slug}/configuracion`, icono: Settings },
   ];
 

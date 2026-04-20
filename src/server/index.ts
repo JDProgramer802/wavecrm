@@ -7,6 +7,12 @@ import { rutasEmpresas } from './modulos/empresas/rutas';
 import { rutasAutenticacion } from './modulos/autenticacion/rutas';
 import { rutasContactos } from './modulos/contactos/rutas';
 import { rutasWhatsApp } from './modulos/whatsapp/rutas';
+import { rutasMensajes } from './modulos/mensajes/rutas';
+import { rutasCDA } from './modulos/cda/rutas';
+import { rutasBarberia } from './modulos/barberia/rutas';
+import { rutasMonedas } from './modulos/monedas/rutas';
+import { rutasAPIKeys } from './modulos/api_keys/rutas';
+import { rutasAutomatizaciones } from './modulos/automatizaciones/rutas';
 
 dotenv.config();
 
@@ -30,6 +36,12 @@ app.use('/api/autenticacion', rutasAutenticacion);
 app.use('/api/empresas', rutasEmpresas);
 app.use('/api/contactos', rutasContactos);
 app.use('/api/whatsapp', rutasWhatsApp);
+app.use('/api/mensajes', rutasMensajes);
+app.use('/api/cda', rutasCDA);
+app.use('/api/barberia', rutasBarberia);
+app.use('/api/monedas', rutasMonedas);
+app.use('/api/api-keys', rutasAPIKeys);
+app.use('/api/automatizaciones', rutasAutomatizaciones);
 
 // Manejo de errores global
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
